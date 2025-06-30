@@ -30,10 +30,19 @@ class UserSchema(ma.Schema):
         validate=validate.Regexp(r'^[6-9]\d{9}$', error="Mobile number must start with 6-9 and have 10 digits")
     )
     password = fields.Str(
-        required=True,
-        load_only=True,
-        validate=validate.Length(min=6, error="Password must be at least 6 characters long")
-    )
+    required=True,
+    load_only=True,
+    validate=[
+        validate.Length(min=6, error="Password must be at least 6 characters long"),
+        validate.Regexp(
+            r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).+$',
+            error=(
+                "Password must contain at least one uppercase letter, "
+                "one lowercase letter, one number, and one special character"
+            )
+        )
+    ]
+)
 
 class LoginSchema(ma.Schema):
     class Meta:

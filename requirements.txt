@@ -12,5 +12,6 @@ psycopg2-binary==2.9.10
 pytest==8.4.1 
 pytz==2025.2
 SQLAlchemy==2.0.41
+PyJWT==2.10.1
 
 

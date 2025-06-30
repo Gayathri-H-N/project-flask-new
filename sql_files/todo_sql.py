@@ -17,16 +17,16 @@ def get_todos_by_user(user_uid, date=None):
         query = query.filter(func.date(ToDo.created_at) == date)
     return query.order_by(ToDo.created_at.desc()).all()
 
-def delete_todo_by_uid(todo_uid):
-    todo = ToDo.query.filter_by(uid=todo_uid).first()
+def delete_todo_by_uid(todo_uid, user_uid):
+    todo = ToDo.query.filter_by(uid=todo_uid, user_uid=user_uid).first()    
     if not todo:
         return False
     db.session.delete(todo)
     db.session.commit()
     return True
 
-def update_todo_by_uid(todo_uid, task=None, description=None, status=None):
-    todo = ToDo.query.filter_by(uid=todo_uid).first()
+def update_todo_by_uid(todo_uid, user_uid, task=None, description=None, status=None):
+    todo = ToDo.query.filter_by(uid=todo_uid, user_uid=user_uid).first()
     if not todo:
         return None
 

@@ -24,7 +24,7 @@ class UserRoutesTestCase(unittest.TestCase):
             "last_name": "User",
             "email": "test@example.com",
             "mobile_number": "9876543210",
-            "password": "TestPass123"
+            "password": "MyPass@123"
         }
         response = self.client.post('/user/register', data=json.dumps(payload), content_type='application/json')
         self.assertEqual(response.status_code, 201)
@@ -37,7 +37,7 @@ class UserRoutesTestCase(unittest.TestCase):
             "last_name": "Last",
             "email": "duplicate@example.com",
             "mobile_number": "9876543211",
-            "password": "pass1234"
+            "password": "Pass1234!"
         }
         self.client.post('/user/register', data=json.dumps(payload), content_type='application/json')
         payload["username"] = "otheruser"
@@ -53,13 +53,13 @@ class UserRoutesTestCase(unittest.TestCase):
             "last_name": "User",
             "email": "login@example.com",
             "mobile_number": "9876543213",
-            "password": "LoginPass"
+            "password": "LoginPass2$"
         }
         self.client.post('/user/register', data=json.dumps(payload), content_type='application/json')
 
         login_payload = {
             "email": "login@example.com",
-            "password": "LoginPass"
+            "password": "LoginPass2$"
         }
         response = self.client.post('/user/login', data=json.dumps(login_payload), content_type='application/json')
         self.assertEqual(response.status_code, 200)
@@ -68,7 +68,7 @@ class UserRoutesTestCase(unittest.TestCase):
     def test_login_user_invalid_password(self):
         login_payload = {
             "email": "wrong@example.com",
-            "password": "WrongPass"
+            "password": "WrongPass1!"
         }
         response = self.client.post('/user/login', data=json.dumps(login_payload), content_type='application/json')
         self.assertEqual(response.status_code, 401)
@@ -81,7 +81,7 @@ class UserRoutesTestCase(unittest.TestCase):
             "last_name": "Format",
             "email": "invalidemail",
             "mobile_number": "9876543214",
-            "password": "pass1234"
+            "password": "Pass1234!"
         }
         response = self.client.post('/user/register', data=json.dumps(payload), content_type='application/json')
         self.assertEqual(response.status_code, 400)
@@ -106,7 +106,7 @@ class UserRoutesTestCase(unittest.TestCase):
             "last_name": "Name",
             "email": "short@example.com",
             "mobile_number": "9876543216",
-            "password": "pass1234"
+            "password": "Pass1234!"
         }
         response = self.client.post('/user/register', data=json.dumps(payload), content_type='application/json')
         self.assertEqual(response.status_code, 400)
@@ -119,7 +119,7 @@ class UserRoutesTestCase(unittest.TestCase):
             "last_name": "User",
             "email": "mob1@example.com",
             "mobile_number": "7777777777",
-            "password": "pass1234"
+            "password": "Pass1234!"
         }
         payload2 = {
             "username": "mobuser2",
@@ -127,7 +127,7 @@ class UserRoutesTestCase(unittest.TestCase):
             "last_name": "User",
             "email": "mob2@example.com",
             "mobile_number": "7777777777",
-            "password": "pass1234"
+            "password": "Pass1234!"
         }
         self.client.post('/user/register', data=json.dumps(payload1), content_type='application/json')
         response = self.client.post('/user/register', data=json.dumps(payload2), content_type='application/json')
