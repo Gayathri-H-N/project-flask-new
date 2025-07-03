@@ -1,16 +1,24 @@
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
 from schemas.user_schema import UserSchema,LoginSchema
 from manager.user_manager import UserManager
-from utils import generate_token
+from utils import generate_access_token, generate_refresh_token, require_standard_headers, decode_token
+from models import UserToken
+from extensions import db
 import logging 
+import jwt
 
 
 user = Blueprint('user', __name__)
 user_manager = UserManager()
 
 @user.route('/register', methods=['POST'])
+@require_standard_headers
 def register():
+    """
+    Handles user registration.
+    """
     try:
         data = UserSchema().load(request.get_json())
         logging.info("Received user registration data")
@@ -25,20 +33,84 @@ def register():
         return jsonify(e.messages), 400
 
 
-
 @user.route('/login', methods=['POST'])
+@require_standard_headers
 def login():
+    """
+    Handles user authentication and generates JWT access and refresh tokens.
+    """
+
     try:
         data = LoginSchema().load(request.get_json())
+
         user = user_manager.login_user(data['email'], data['password'])
         if not user:
             return jsonify({"error": "Invalid credentials"}), 401
 
-        token = generate_token(user.uid)
+        access_token = generate_access_token(user.uid)
+        refresh_token, refresh_expiry = generate_refresh_token(user.uid)
+
+        user_manager.save_token(
+            user_uid=user.uid,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            refresh_token_expiry=refresh_expiry
+        )
+        
+       
         return jsonify({
             "message": f"Welcome {user.first_name}",
             "uid": user.uid,
-            "token": token
+            "access_token": access_token,
+            "refresh_token": refresh_token
         })
     except ValidationError as e:
         return jsonify(e.messages), 400
+    except Exception as e:
+        logging.error(f"Error in login: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+    
+
+@user.route('/refresh', methods=['POST'])
+@require_standard_headers
+def refresh_token_route():
+    """
+    Generates a new JWT access token using a valid refresh token.
+    """
+
+    token = None
+    if "Authorization" in request.headers:
+        bearer = request.headers["Authorization"]
+        if bearer.startswith("Bearer "):
+            token = bearer.split(" ")[1]
+
+    if not token:
+        return jsonify({"error": "Refresh token is missing"}), 401
+
+    try:
+        # Decode refresh token
+        data = decode_token(token)
+        user_uid = data["uid"]
+        
+        # Check if this token exists in DB
+        token_record = UserToken.query.filter_by(refresh_token=token, user_uid=user_uid).first()
+        if not token_record:
+            return jsonify({"error": "Invalid refresh token"}), 401
+
+        # Generate new access token
+        new_access_token = generate_access_token(user_uid)
+
+        # Update DB
+        token_record.access_token = new_access_token
+        db.session.commit()
+
+        return jsonify({"access_token": new_access_token})
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({"error": "Refresh token expired"}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({"error": "Invalid refresh token"}), 401
+    except Exception as e:
+        logging.error(f"Error in refresh_token: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+

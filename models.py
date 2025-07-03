@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 from extensions import db
+
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
@@ -32,6 +33,16 @@ class ToDo(db.Model):
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     modified_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
     user_uid = db.Column(db.String(36),db.ForeignKey('user.uid', name='fk_todo_user_uid'),nullable=False)
+
+
+class UserToken(db.Model):
+    __tablename__ = "user_tokens"
+    id = db.Column(db.Integer, primary_key=True)
+    user_uid = db.Column(db.String(64), nullable=False)
+    access_token = db.Column(db.Text, nullable=False)
+    refresh_token = db.Column(db.Text, nullable=False)
+    refresh_token_expiry = db.Column(db.DateTime(timezone=True), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True),default=lambda: datetime.now(timezone.utc))
 
    
 

@@ -9,6 +9,10 @@ from sql_files.todo_sql import (
 
 class ToDoManager:
     def create(self, task, description, user_uid):
+        """
+        Contains the logic to create a new ToDo item for a user after validating input and user existence.
+        """
+
         try:
             if not task or not user_uid:
                 logging.warning("Create ToDo failed: Task and user_uid are required")
@@ -29,6 +33,10 @@ class ToDoManager:
 
 
     def get_by_user_uid(self, user_uid, date=None):
+        """
+        Contains the logic to retrieve ToDo items for a user, with optional filtering by date.
+        """
+
         try:
             user = get_user_by_uid(user_uid)
             if not user:
@@ -44,6 +52,10 @@ class ToDoManager:
 
 
     def delete_by_uid(self, todo_uid, user_uid):
+        """
+        Contains the logic to delete a ToDo item by its UID for a specific user.
+        """
+
         try:
             if not todo_uid:
                 logging.warning("Delete ToDo failed: Todo UID is required")
@@ -63,6 +75,10 @@ class ToDoManager:
 
 
     def update_by_uid(self, todo_uid, user_uid, task=None, description=None, status=None):
+        """
+        Contains the logic to update fields of a ToDo item by its UID for a specific user.
+        """
+
         try:
             if not todo_uid:
                 logging.warning("Update ToDo failed: Todo UID is required")

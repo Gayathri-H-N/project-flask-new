@@ -11,6 +11,9 @@ todo = Blueprint('todo', __name__)
 todo_manager = ToDoManager()
 
 def token_required(f):
+    """
+    Decorator to validate the JWT access token and inject the current user's UID into the route function.
+    """
     @wraps(f)
     def decorated(*args, **kwargs):
         token = None
@@ -36,6 +39,10 @@ def token_required(f):
 @todo.route('/create', methods=['POST'])
 @token_required
 def create_todo(current_user_uid):
+    """
+    Creates a new ToDo item for the authenticated user.
+    """
+
     try:
         # user_uid = request.args.get('user_uid')
         # if not user_uid:
@@ -61,6 +68,10 @@ def create_todo(current_user_uid):
 @todo.route('/gettodo', methods=['GET'])
 @token_required
 def get_todos(current_user_uid):
+    """
+    Retrieves ToDo items for the authenticated user, optionally filtered by date.
+    """
+
     try:
         # user_uid = request.args.get('user_uid')
         # if not user_uid:
@@ -86,6 +97,10 @@ def get_todos(current_user_uid):
 @todo.route('/delete', methods=['DELETE'])
 @token_required
 def delete_todo(current_user_uid):
+    """
+    Deletes a ToDo item by its UID for the authenticated user.
+    """
+
     try:
         todo_uid = request.args.get('todo_uid')
         if not todo_uid:
@@ -113,6 +128,10 @@ def delete_todo(current_user_uid):
 @todo.route('/update', methods=['PUT'])
 @token_required
 def update_todo(current_user_uid):
+    """
+    Updates a ToDo item by its UID for the authenticated user.
+    """
+
     try:
         todo_uid = request.args.get('todo_uid')
         if not todo_uid:
