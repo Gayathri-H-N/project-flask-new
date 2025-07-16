@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 import logging
 import jwt
 from flask import Blueprint, request, jsonify
@@ -5,7 +6,8 @@ from schemas.todo_schema import ToDoCreateSchema, ToDoQuerySchema, ToDoResponseS
 from manager.todo_manager import ToDoManager
 from marshmallow import ValidationError
 from functools import wraps
-from utils import decode_token
+from models import UserToken
+from utils import decode_token, require_standard_headers 
 
 todo = Blueprint('todo', __name__)
 todo_manager = ToDoManager()
@@ -16,18 +18,36 @@ def token_required(f):
     """
     @wraps(f)
     def decorated(*args, **kwargs):
-        token = None
-        if "Authorization" in request.headers:
-            bearer = request.headers["Authorization"]
-            if bearer.startswith("Bearer "):
-                token = bearer.split(" ")[1]
+        #Validate headers by reusing require_standard_headers
+        headers_result = require_standard_headers(lambda: None)()
+        if headers_result is not None:
+            return headers_result
 
+        #Extract Device-Uuid 
+        device_uuid = request.headers.get("Device-Uuid")
+
+        #Get the Authorization header and extract token
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return jsonify({"error": "Authorization header must be Bearer token"}), 401
+        token = auth_header.split(" ")[1]
         if not token:
             return jsonify({"error": "Token is missing"}), 401
 
         try:
             data = decode_token(token)
             current_user_uid = data["uid"]
+            token_record = UserToken.query.filter_by(
+                user_uid=current_user_uid,
+                access_token=token
+            ).first()
+            
+            if not token_record:
+                return jsonify({"error": "Invalid token"}), 401
+            if token_record.device_uuid != device_uuid:
+                return jsonify({"error": "Device UUID mismatch"}), 401
+
+            
         except jwt.ExpiredSignatureError:
             return jsonify({"error": "Token expired"}), 401
         except jwt.InvalidTokenError:
@@ -35,6 +55,7 @@ def token_required(f):
 
         return f(current_user_uid, *args, **kwargs)
     return decorated
+
 
 @todo.route('/create', methods=['POST'])
 @token_required
@@ -44,11 +65,6 @@ def create_todo(current_user_uid):
     """
 
     try:
-        # user_uid = request.args.get('user_uid')
-        # if not user_uid:
-        #     logging.warning("Create ToDo failed: user_uid missing in query parameters")
-        #     return jsonify({'error': 'user_uid is required in query parameters'}), 400
-
         data = ToDoCreateSchema().load(request.get_json())
         todo_item, error = todo_manager.create(data['task'], data['description'], current_user_uid)
         if error:
@@ -72,12 +88,7 @@ def get_todos(current_user_uid):
     Retrieves ToDo items for the authenticated user, optionally filtered by date.
     """
 
-    try:
-        # user_uid = request.args.get('user_uid')
-        # if not user_uid:
-        #     logging.warning("Get ToDos failed: user_uid missing in query parameters")
-        #     return jsonify({'error': 'user_uid is required in query parameters'}), 400
-            
+    try:        
         logging.info(f"Fetching todos for user_uid: {current_user_uid}")
         params = ToDoQuerySchema().load(request.args)
         date = params.get('date')

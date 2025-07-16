@@ -13,6 +13,8 @@ class User(db.Model):
     mobile_number = db.Column(db.String(15), nullable=False)
     password = db.Column(db.String(200), nullable=False)
     create_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    email_verified = db.Column(db.Boolean, nullable=False, default=False)
+    phone_verified = db.Column(db.Boolean, nullable=False, default=False)
 
     # todos = db.relationship('ToDo', backref='user', lazy=True)
     todos = db.relationship(
@@ -40,9 +42,25 @@ class UserToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_uid = db.Column(db.String(64), nullable=False)
     access_token = db.Column(db.Text, nullable=False)
+    access_token_expiry = db.Column(db.DateTime(timezone=True), nullable=True)
     refresh_token = db.Column(db.Text, nullable=False)
     refresh_token_expiry = db.Column(db.DateTime(timezone=True), nullable=False)
+    device_uuid = db.Column(db.String(100), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True),default=lambda: datetime.now(timezone.utc))
+
+
+class UserOTP(db.Model):
+    __tablename__ = "user_otps"
+    id = db.Column(db.Integer, primary_key=True)
+    user_uid = db.Column(db.String, db.ForeignKey("user.uid"), nullable=False)
+    otp_code = db.Column(db.String, nullable=False)
+    purpose = db.Column(db.String, nullable=False)  
+    expires_at = db.Column(db.DateTime, nullable=False)
+    is_used = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    user = db.relationship("User", backref=db.backref("otps", lazy=True))
+
 
    
 

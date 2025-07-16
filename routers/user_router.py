@@ -47,14 +47,17 @@ def login():
         if not user:
             return jsonify({"error": "Invalid credentials"}), 401
 
-        access_token = generate_access_token(user.uid)
+        access_token, access_expiry = generate_access_token(user.uid)
         refresh_token, refresh_expiry = generate_refresh_token(user.uid)
+        device_uuid = request.headers.get("Device-Uuid")
 
         user_manager.save_token(
             user_uid=user.uid,
             access_token=access_token,
+            access_expiry=access_expiry,
             refresh_token=refresh_token,
-            refresh_token_expiry=refresh_expiry
+            refresh_token_expiry=refresh_expiry,
+            device_uuid=device_uuid
         )
         
        
@@ -96,12 +99,18 @@ def refresh_token_route():
         token_record = UserToken.query.filter_by(refresh_token=token, user_uid=user_uid).first()
         if not token_record:
             return jsonify({"error": "Invalid refresh token"}), 401
+        
+      # Get device_uuid from headers
+        incoming_device_uuid = request.headers.get("Device-Uuid")
+        if token_record.device_uuid != incoming_device_uuid:
+            return jsonify({"error": "Device UUID mismatch"}), 401
 
         # Generate new access token
-        new_access_token = generate_access_token(user_uid)
+        new_access_token, new_access_expiry = generate_access_token(user_uid)
 
         # Update DB
         token_record.access_token = new_access_token
+        token_record.access_token_expiry = new_access_expiry
         db.session.commit()
 
         return jsonify({"access_token": new_access_token})

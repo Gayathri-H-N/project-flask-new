@@ -4,13 +4,14 @@ from flask import current_app, request, jsonify
 from functools import wraps
 
 def generate_access_token(user_uid, expires_in=120): #2 mins
+    expiry = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
     payload = {
         "uid": user_uid,
         "type": "access",
-        "exp": datetime.now(timezone.utc) + timedelta(seconds=expires_in)
+        "exp": expiry
     }
     token = jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
-    return token
+    return token,expiry
 
 def generate_refresh_token(user_uid, expires_in=604800):  # 7 days
     expiry = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
@@ -44,3 +45,22 @@ def require_standard_headers(f):
 
         return f(*args, **kwargs)
     return decorated
+
+
+def validate_phone_number(phone_number):
+    """
+    Validates a phone number using Twilio Lookup API.
+    Returns a dict with details if valid, else None.
+    """
+    from twilio_client import twilio_client
+    try:
+        phone = twilio_client.lookups.phone_numbers(phone_number).fetch(type="carrier")
+        return {
+            "valid": True,
+            "number": phone.phone_number,
+            "country_code": phone.country_code,
+            "carrier": phone.carrier
+        }
+    except Exception as e:
+        # Twilio raises exception if number is invalid
+        return None

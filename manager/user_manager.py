@@ -1,6 +1,8 @@
 import logging
 from extensions import bcrypt
 from models import User
+from flask import current_app
+from utils import validate_phone_number
 from sql_files.user_sql import (
     get_user_by_email,
     get_user_by_username,
@@ -28,14 +30,21 @@ class UserManager:
             if is_mobile_registered(data['mobile_number']):
                 logging.warning(f"Registration failed: Mobile number already exists - {data['mobile_number']}")
                 return None
+            validation_result = validate_phone_number(data['mobile_number'])
+            if not validation_result:
+                logging.warning(f"Registration failed: Invalid phone number - {data['mobile_number']}")
+                return None
 
-            hashed_pw = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+            pepper = current_app.config["PEPPER"]
+            password_with_pepper = data['password'] + pepper
+            hashed_pw = bcrypt.generate_password_hash(password_with_pepper).decode('utf-8')
+
             user = User(
                 username=data['username'],
                 first_name=data['first_name'],
                 last_name=data['last_name'],
                 email=data['email'],
-                mobile_number=data['mobile_number'],
+                mobile_number=validation_result['number'],
                 password=hashed_pw
             )
 
@@ -57,7 +66,9 @@ class UserManager:
 
         try:
             user = get_user_by_email(email)
-            if user and bcrypt.check_password_hash(user.password, password):
+            pepper = current_app.config["PEPPER"]
+            password_with_pepper = password + pepper
+            if user and bcrypt.check_password_hash(user.password, password_with_pepper):
                 logging.info(f"Login successful for user: {email}")
                 return user
 
@@ -69,7 +80,7 @@ class UserManager:
             return None
         
 
-     def save_token(self, user_uid, access_token, refresh_token, refresh_token_expiry=None):
+     def save_token(self, user_uid, access_token, access_expiry, refresh_token, refresh_token_expiry=None, device_uuid=None):
         """
         Saves a user's tokens to the database.
         """
@@ -77,8 +88,10 @@ class UserManager:
             return insert_user_token(
                 user_uid=user_uid,
                 access_token=access_token,
+                access_token_expiry=access_expiry,
                 refresh_token=refresh_token,
-                refresh_token_expiry=refresh_token_expiry
+                refresh_token_expiry=refresh_token_expiry,
+                device_uuid=device_uuid
             )
         except Exception as e:
             logging.error(f"Error saving tokens for user_uid {user_uid}: {str(e)}")

@@ -26,7 +26,7 @@ def insert_user(user):
     db.session.commit()
     return user
 
-def insert_user_token(user_uid, access_token, refresh_token, refresh_token_expiry):
+def insert_user_token(user_uid, access_token, access_token_expiry, refresh_token, refresh_token_expiry, device_uuid):
     """
     Inserts a new user token record into the database with access and refresh tokens.
     """
@@ -34,8 +34,10 @@ def insert_user_token(user_uid, access_token, refresh_token, refresh_token_expir
     token_record = UserToken(
         user_uid=user_uid,
         access_token=access_token,
+        access_token_expiry=access_token_expiry,
         refresh_token=refresh_token,
-        refresh_token_expiry=refresh_token_expiry
+        refresh_token_expiry=refresh_token_expiry,
+        device_uuid=device_uuid
     )
     db.session.add(token_record)
     db.session.commit()
