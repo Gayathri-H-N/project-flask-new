@@ -2,6 +2,8 @@ import jwt
 from datetime import datetime, timedelta, timezone
 from flask import current_app, request, jsonify
 from functools import wraps
+from twilio.base.exceptions import TwilioRestException
+from twilio_client import get_twilio_client
 
 def generate_access_token(user_uid, expires_in=120): #2 mins
     expiry = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
@@ -52,15 +54,14 @@ def validate_phone_number(phone_number):
     Validates a phone number using Twilio Lookup API.
     Returns a dict with details if valid, else None.
     """
-    from twilio_client import twilio_client
     try:
-        phone = twilio_client.lookups.phone_numbers(phone_number).fetch(type="carrier")
+        client = get_twilio_client()
+        phone = client.lookups.v2.phone_numbers(phone_number).fetch(type=["carrier"])
         return {
             "valid": True,
             "number": phone.phone_number,
             "country_code": phone.country_code,
             "carrier": phone.carrier
         }
-    except Exception as e:
-        # Twilio raises exception if number is invalid
+    except TwilioRestException as e:
         return None

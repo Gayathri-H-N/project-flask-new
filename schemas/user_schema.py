@@ -1,5 +1,6 @@
+import re
 from extensions import ma
-from marshmallow import fields, validate, ValidationError, EXCLUDE
+from marshmallow import fields, validate, ValidationError, EXCLUDE, validates
 
 class UserSchema(ma.Schema):
     class Meta:
@@ -25,10 +26,7 @@ class UserSchema(ma.Schema):
         ]
     )
     email = fields.Email(required=True, error_messages={"invalid": "Invalid email address"})
-    mobile_number = fields.Str(
-        required=True,
-        validate=validate.Regexp(r'^[6-9]\d{9}$', error="Mobile number must start with 6-9 and have 10 digits")
-    )
+    mobile_number = fields.Str(required=True)
     password = fields.Str(
     required=True,
     load_only=True,
@@ -43,6 +41,15 @@ class UserSchema(ma.Schema):
         )
     ]
 )
+    
+    @validates("mobile_number")
+    def validate_mobile_number(self, value):
+        if not value.startswith("+"):
+            raise ValidationError("Mobile number must include the country code (e.g., +91XXXXXXXXXX)")
+        pattern = r'^\+\d{10,15}$'
+        if not re.fullmatch(pattern, value):
+            raise ValidationError("Invalid mobile number format. Must be in E.164 format, e.g., +919876543210")
+        
 
 class LoginSchema(ma.Schema):
     class Meta:

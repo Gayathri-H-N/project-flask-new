@@ -1,3 +1,4 @@
+#user_manager.py
 import logging
 from extensions import bcrypt
 from models import User
@@ -30,9 +31,15 @@ class UserManager:
             if is_mobile_registered(data['mobile_number']):
                 logging.warning(f"Registration failed: Mobile number already exists - {data['mobile_number']}")
                 return None
-            validation_result = validate_phone_number(data['mobile_number'])
+            # Normalize phone number to add country code if missing
+            phone = data['mobile_number'].strip()
+            if not phone.startswith('+'):
+                phone = '+91' + phone  # Default country code (India)
+
+            # Validate using Twilio Lookup
+            validation_result = validate_phone_number(phone)
             if not validation_result:
-                logging.warning(f"Registration failed: Invalid phone number - {data['mobile_number']}")
+                logging.warning(f"Registration failed: Invalid phone number - {phone}")
                 return None
 
             pepper = current_app.config["PEPPER"]
