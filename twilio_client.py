@@ -1,7 +1,18 @@
-from flask import current_app
 from twilio.rest import Client
+import os
+
+account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+twilio_client = Client(account_sid, auth_token)
+
+TWILIO_FROM_NUMBER = os.getenv("TWILIO_PHONE_NUMBER") 
 
 def get_twilio_client():
-    account_sid = current_app.config["TWILIO_ACCOUNT_SID"]
-    auth_token = current_app.config["TWILIO_AUTH_TOKEN"]
-    return Client(account_sid, auth_token)
+    return twilio_client
+
+def send_sms(to_number, message):
+    return twilio_client.messages.create(
+        body=message,
+        from_=TWILIO_FROM_NUMBER,
+        to=to_number
+    )

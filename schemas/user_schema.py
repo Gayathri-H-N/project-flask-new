@@ -43,12 +43,13 @@ class UserSchema(ma.Schema):
 )
     
     @validates("mobile_number")
-    def validate_mobile_number(self, value):
+    def validate_mobile_number(self, value, **kwargs):
         if not value.startswith("+"):
             raise ValidationError("Mobile number must include the country code (e.g., +91XXXXXXXXXX)")
         pattern = r'^\+\d{10,15}$'
         if not re.fullmatch(pattern, value):
             raise ValidationError("Invalid mobile number format. Must be in E.164 format, e.g., +919876543210")
+
         
 
 class LoginSchema(ma.Schema):

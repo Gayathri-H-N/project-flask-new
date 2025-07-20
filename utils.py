@@ -56,12 +56,11 @@ def validate_phone_number(phone_number):
     """
     try:
         client = get_twilio_client()
-        phone = client.lookups.v2.phone_numbers(phone_number).fetch(type=["carrier"])
+        phone = client.lookups.v2.phone_numbers(phone_number).fetch()
         return {
             "valid": True,
             "number": phone.phone_number,
             "country_code": phone.country_code,
-            "carrier": phone.carrier
         }
     except TwilioRestException as e:
         return None

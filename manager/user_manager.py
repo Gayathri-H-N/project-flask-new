@@ -31,12 +31,8 @@ class UserManager:
             if is_mobile_registered(data['mobile_number']):
                 logging.warning(f"Registration failed: Mobile number already exists - {data['mobile_number']}")
                 return None
-            # Normalize phone number to add country code if missing
-            phone = data['mobile_number'].strip()
-            if not phone.startswith('+'):
-                phone = '+91' + phone  # Default country code (India)
-
-            # Validate using Twilio Lookup
+            
+            phone = data['mobile_number']
             validation_result = validate_phone_number(phone)
             if not validation_result:
                 logging.warning(f"Registration failed: Invalid phone number - {phone}")

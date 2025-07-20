@@ -1,4 +1,3 @@
-#user_router.py
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
@@ -7,6 +6,7 @@ from manager.user_manager import UserManager
 from utils import generate_access_token, generate_refresh_token, require_standard_headers, decode_token
 from models import UserToken
 from extensions import db
+from twilio_client import send_sms
 import logging 
 import jwt
 
@@ -27,6 +27,15 @@ def register():
         if not user:
             logging.warning("Registration failed: User already exists")
             return jsonify({"error": "User already exists"}), 400
+        
+        # ✅ Send SMS confirmation
+        try:
+            message = f"Hi {user.first_name}, your registration was successful!"
+            send_sms(to_number=user.mobile_number, message=message)
+            logging.info(f"Confirmation SMS sent to {user.mobile_number}")
+        except Exception as sms_err:
+            logging.error(f"Failed to send SMS: {sms_err}")
+
         logging.info(f"User registered successfully: {user.username}")
         return jsonify({"message": "User registered", "uid": user.uid}), 201
     except ValidationError as e:
