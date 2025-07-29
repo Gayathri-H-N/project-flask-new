@@ -58,3 +58,17 @@ class LoginSchema(ma.Schema):
 
     email = fields.Email(required=True, error_messages={"required": "Email is required", "invalid": "Invalid email address"})
     password = fields.Str(required=True, load_only=True, error_messages={"required": "Password is required"})
+
+
+class OTPVerificationSchema(ma.Schema):
+    class Meta:
+        unknown = EXCLUDE
+    
+    user_uid = fields.Str(required=True, error_messages={"required": "User UID is required"})
+    otp_code = fields.Str(
+        required=True,
+        validate=[
+            validate.Length(equal=6, error="OTP must be exactly 6 digits"),
+            validate.Regexp(r'^\d{6}$', error="OTP must contain only digits")
+        ]
+    )

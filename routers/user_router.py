@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 from marshmallow import ValidationError
-from schemas.user_schema import UserSchema,LoginSchema
+from schemas.user_schema import UserSchema,LoginSchema, OTPVerificationSchema
 from manager.user_manager import UserManager
 from utils import generate_access_token, generate_refresh_token, require_standard_headers, decode_token
 from models import UserToken
 from extensions import db
-from twilio_client import send_sms
 import logging 
 import jwt
 
@@ -28,20 +27,78 @@ def register():
             logging.warning("Registration failed: User already exists")
             return jsonify({"error": "User already exists"}), 400
         
-        # ✅ Send SMS confirmation
-        try:
-            message = f"Hi {user.first_name}, your registration was successful!"
-            send_sms(to_number=user.mobile_number, message=message)
-            logging.info(f"Confirmation SMS sent to {user.mobile_number}")
-        except Exception as sms_err:
-            logging.error(f"Failed to send SMS: {sms_err}")
-
-        logging.info(f"User registered successfully: {user.username}")
-        return jsonify({"message": "User registered", "uid": user.uid}), 201
+        logging.info(f"User registration initiated: {data['username']}")
+        return jsonify({
+            "message": user['message'],
+            "user_uid": user['user_uid']
+        }), 201
+        
     except ValidationError as e:
         logging.error(f"Validation error during registration: {e.messages}")
         return jsonify(e.messages), 400
+    except Exception as e:
+        logging.error(f"Unexpected error in register: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
 
+
+@user.route('/verify-otp', methods=['POST'])
+@require_standard_headers
+def verify_otp():
+    """
+    Verifies OTP and completes user registration.
+    """
+    try:
+        data = OTPVerificationSchema().load(request.get_json())
+        logging.info(f"Received OTP verification for user: {data['user_uid']}")
+        
+        result = user_manager.verify_otp(data['user_uid'], data['otp_code'])
+        
+        if not result['success']:
+            logging.warning(f"OTP verification failed: {result['error']}")
+            return jsonify({"error": result['error']}), 400
+        
+        logging.info(f"OTP verification successful for user: {data['user_uid']}")
+        return jsonify({
+            "message": result['message'],
+            "user": result['user']
+        }), 200
+        
+    except ValidationError as e:
+        logging.error(f"Validation error during OTP verification: {e.messages}")
+        return jsonify(e.messages), 400
+    except Exception as e:
+        logging.error(f"Unexpected error in verify_otp: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+
+
+@user.route('/resend-otp', methods=['POST'])
+@require_standard_headers
+def resend_otp():
+    """
+    Resends OTP to user's registered phone number.
+    """
+    try:
+        data = request.get_json()
+        user_uid = data.get('user_uid')
+        
+        if not user_uid:
+            return jsonify({"error": "User UID is required"}), 400
+        
+        logging.info(f"Resending OTP for user: {user_uid}")
+        
+        result = user_manager.resend_otp(user_uid)
+        
+        if not result['success']:
+            logging.warning(f"OTP resend failed: {result['error']}")
+            return jsonify({"error": result['error']}), 400
+        
+        logging.info(f"OTP resent successfully for user: {user_uid}")
+        return jsonify({"message": result['message']}), 200
+        
+    except Exception as e:
+        logging.error(f"Unexpected error in resend_otp: {str(e)}")
+        return jsonify({"error": "Internal server error"}), 500
+    
 
 @user.route('/login', methods=['POST'])
 @require_standard_headers

@@ -56,8 +56,19 @@ def is_email_registered(email):
     """
     return db.session.query(User.id).filter_by(email=email).first() is not None
 
-def is_mobile_registered(mobile_number):
+# def is_mobile_registered(mobile_number):
+#     """
+#     Checks if a mobile number is already registered.
+#     """
+#     return db.session.query(User.id).filter_by(mobile_number=mobile_number).first() is not None
+
+def update_user_phone_verification(user_uid, phone_verified=True):
     """
-    Checks if a mobile number is already registered.
+    Updates the phone verification status for a user.
     """
-    return db.session.query(User.id).filter_by(mobile_number=mobile_number).first() is not None
+    user = User.query.filter_by(uid=user_uid).first()
+    if user:
+        user.phone_verified = phone_verified
+        db.session.commit()
+        return user
+    return None

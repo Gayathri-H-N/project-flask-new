@@ -10,9 +10,3 @@ TWILIO_FROM_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 def get_twilio_client():
     return twilio_client
 
-def send_sms(to_number, message):
-    return twilio_client.messages.create(
-        body=message,
-        from_=TWILIO_FROM_NUMBER,
-        to=to_number
-    )
